@@ -1,1 +1,0 @@
-curl http://localhost:11434/api/embed -d '{"model": "bge-m3", "input": "\"NANOPILLARS\":\"Nanopillars are structures embedded for higher stability and durability.\""}'

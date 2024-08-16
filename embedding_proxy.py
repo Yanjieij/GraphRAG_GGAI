@@ -5,8 +5,6 @@ import httpx
 from pydantic import BaseModel
 from typing import List, Union
 
-import os
-
 app = FastAPI()
 
 OLLAMA_URL = "http://localhost:11434"  # Default Ollama URL
@@ -33,39 +31,26 @@ async def create_embedding(request: EmbeddingRequest):
         ollama_requests = [{"model": request.model, "input": text} for text in request.input]
 
         embeddings = []
-
+        total_tokens = 0
 
         for i, ollama_request in enumerate(ollama_requests):
-            # print(ollama_request)
-
-            request_file_path = f"ollama_request_{i}.json"
-            with open(request_file_path, "w") as f:
-                json.dump(ollama_request, f)
-
             response = await client.post(f"{OLLAMA_URL}/api/embed", json=ollama_request)
-
-            result = response.json()
-
-            result_file_path = f"result_{i}.json"
-            with open(result_file_path, "w") as f:
-                json.dump(result, f)
-
             if response.status_code != 200:
                 raise HTTPException(status_code=response.status_code, detail="Ollama API error")
-        
-
+            
+            result = response.json()
             embeddings.append({
                 "object": "embedding",
-                "embedding": result["embeddings"],
+                "embedding": result["embeddings"][0],
                 "index": i
             })
-            
+            total_tokens += result["prompt_eval_count"]
 
         return EmbeddingResponse(
             object="list",
             data=embeddings,
             model=request.model,
-            usage={},
+            usage={"prompt_tokens": total_tokens, "total_tokens": total_tokens},
         )
 
 if __name__ == "__main__":
